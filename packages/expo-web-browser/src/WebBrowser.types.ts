@@ -31,6 +31,14 @@ export type WebBrowserOpenOptions = {
    * Default: `false`
    */
   showInRecents?: boolean;
+  /**
+   * Customize window transition animation (enter/exit animation).
+   * Default: unspecified (OS-default behavior)
+   * - 'slide': browser and app window slides right-to-left, and back to left-to-right
+   * - 'slide_vertical': browser window slides bottom-to-top, and back to top-to-bottom
+   * - 'fade': browser fades in and app fades out, and back to reverse
+   */
+  windowTransitionStyle?: 'slide' | 'slide_vertical' | 'fade';
 
   /** iOS only */
   controlsColor?: string;

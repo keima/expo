@@ -1,6 +1,7 @@
 package expo.modules.webbrowser;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -22,6 +23,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.browser.customtabs.CustomTabsClient;
 import androidx.browser.customtabs.CustomTabsIntent;
+import androidx.core.content.ContextCompat;
 import expo.modules.webbrowser.error.PackageManagerNotFoundException;
 
 import static androidx.browser.customtabs.CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION;
@@ -78,8 +80,19 @@ class InternalCustomTabsActivitiesHelper implements CustomTabsActivitiesHelper {
     return getResolvingActivities(intent).size() > 0;
   }
 
-  public void startCustomTabs(Intent intent) throws CurrentActivityNotFoundException {
-    getCurrentActivity().startActivity(intent);
+  @Override
+  public void setWindowTransitionAnimation(
+    CustomTabsIntent.Builder builder,
+    int startAnimationsEnterResId, int startAnimationsExitResId,
+    int exitAnimationsEnterResId, int exitAnimationsExitResId
+  ) throws CurrentActivityNotFoundException {
+    Context context = getCurrentActivity();
+    builder.setStartAnimations(context, startAnimationsEnterResId, startAnimationsExitResId);
+    builder.setExitAnimations(context, exitAnimationsEnterResId, exitAnimationsExitResId);
+  }
+
+  public void startCustomTabs(CustomTabsIntent customTabsIntent) throws CurrentActivityNotFoundException {
+    ContextCompat.startActivity(getCurrentActivity(), customTabsIntent.intent, customTabsIntent.startAnimationBundle);
   }
 
   private List<ResolveInfo> getResolvingActivities(@NonNull Intent intent) throws PackageManagerNotFoundException, CurrentActivityNotFoundException {

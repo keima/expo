@@ -33,6 +33,7 @@ public class WebBrowserModule extends ExportedModule {
   private final static String DEFAULT_SHARE_MENU_ITEM = "enableDefaultShareMenuItem";
   private final static String TOOLBAR_COLOR_KEY = "toolbarColor";
   private final static String SECONDARY_TOOLBAR_COLOR_KEY = "secondaryToolbarColor";
+  private final static String WINDOW_TRANSITION_STYLE = "windowTransitionStyle";
 
   private final static String ERROR_CODE = "EXWebBrowser";
   private static final String TAG = "ExpoWebBrowser";
@@ -140,12 +141,13 @@ public class WebBrowserModule extends ExportedModule {
   @ExpoMethod
   public void openBrowserAsync(final String url, ReadableArguments arguments, final Promise promise) {
 
-    Intent intent = createCustomTabsIntent(arguments);
+    CustomTabsIntent customTabsintent = createCustomTabsIntent(arguments);
+    Intent intent = customTabsintent.intent;
     intent.setData(Uri.parse(url));
 
     try {
       if (mCustomTabsResolver.canResolveIntent(intent)) {
-        mCustomTabsResolver.startCustomTabs(intent);
+        mCustomTabsResolver.startCustomTabs(customTabsintent);
         Bundle result = new Bundle();
         result.putString("type", "opened");
         promise.resolve(result);
@@ -158,11 +160,12 @@ public class WebBrowserModule extends ExportedModule {
 
   }
 
-  private Intent createCustomTabsIntent(ReadableArguments arguments) {
+  private CustomTabsIntent createCustomTabsIntent(ReadableArguments arguments) {
     CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
     String color = arguments.getString(TOOLBAR_COLOR_KEY);
     String secondaryColor = arguments.getString(SECONDARY_TOOLBAR_COLOR_KEY);
     String packageName = arguments.getString(BROWSER_PACKAGE_KEY);
+    String windowTransitionStyle = arguments.getString(WINDOW_TRANSITION_STYLE, "");
     try {
       if (!TextUtils.isEmpty(color)) {
         int intColor = Color.parseColor(color);
@@ -181,7 +184,34 @@ public class WebBrowserModule extends ExportedModule {
       builder.addDefaultShareMenuItem();
     }
 
-    Intent intent = builder.build().intent;
+    try {
+      switch (windowTransitionStyle) {
+        case "slide":
+          mCustomTabsResolver.setWindowTransitionAnimation(builder,
+            R.anim.exwb_slide_in_right, R.anim.exwb_slide_out_left,
+            android.R.anim.slide_in_left, android.R.anim.slide_out_right
+          );
+          break;
+        case "slide_vertical":
+          mCustomTabsResolver.setWindowTransitionAnimation(builder,
+            R.anim.exwb_slide_in_up, 0,
+            0, R.anim.exwb_slide_out_down
+          );
+          break;
+        case "fade":
+          mCustomTabsResolver.setWindowTransitionAnimation(builder,
+            android.R.anim.fade_in, android.R.anim.fade_out,
+            android.R.anim.fade_in, android.R.anim.fade_out
+          );
+          break;
+        default:
+          // noop
+      }
+    } catch (CurrentActivityNotFoundException ignored) {
+    }
+
+    CustomTabsIntent ctIntent = builder.build();
+    Intent intent = ctIntent.intent;
 
     // We cannot use builder's method enableUrlBarHiding, because there is no corresponding disable method and some browsers enables it by default.
     intent.putExtra(CustomTabsIntent.EXTRA_ENABLE_URLBAR_HIDING, arguments.getBoolean(ENABLE_BAR_COLLAPSING_KEY, false));
@@ -189,13 +219,18 @@ public class WebBrowserModule extends ExportedModule {
       intent.setPackage(packageName);
     }
 
-    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    // If FLAG_ACTIVITY_NEW_TASK is added, exitAnimations not working.
+    // For backward compatibility, add FLAG_ACTIVITY_NEW_TASK unless windowTransitionStyle is specified.
+    if ("".equals(windowTransitionStyle)) {
+      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    }
+
     if (!arguments.getBoolean(SHOW_IN_RECENTS, false)) {
       intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
       intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
     }
 
-    return intent;
+    return ctIntent;
   }
 
   private String givenOrPreferredPackageName(@Nullable String packageName) throws NoPreferredPackageFound {
