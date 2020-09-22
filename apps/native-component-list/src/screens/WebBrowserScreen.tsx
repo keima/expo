@@ -36,6 +36,7 @@ interface State {
   showInRecents: boolean;
   readerMode: boolean;
   enableDefaultShare: boolean;
+  windowTransitionStyle?: string;
 }
 
 export default class WebBrowserScreen extends React.Component<object, State> {
@@ -136,6 +137,7 @@ export default class WebBrowserScreen extends React.Component<object, State> {
       showInRecents: this.state.showInRecents,
       readerMode: this.state.readerMode,
       enableDefaultShareMenuItem: this.state.enableDefaultShare,
+      windowTransitionStyle: this.state.windowTransitionStyle as any,
     };
     const result = await WebBrowser.openBrowserAsync('https://expo.io', args);
     setTimeout(() => Alert.alert('Result', JSON.stringify(result, null, 2)), 1000);
@@ -152,6 +154,12 @@ export default class WebBrowserScreen extends React.Component<object, State> {
   packageSelected = (value: string | number) => {
     if (typeof value === 'string') {
       this.setState({ selectedPackage: value });
+    }
+  };
+
+  windowTransitionStyleSelected = (value: string | number) => {
+    if (typeof value === 'string') {
+      this.setState({ windowTransitionStyle: value });
     }
   };
 
@@ -228,6 +236,18 @@ export default class WebBrowserScreen extends React.Component<object, State> {
               [{ label: '(none)', value: '' }, ...this.state.packages].map(({ value, label }) => (
                 <Picker.Item key={value} label={label} value={value} />
               ))}
+          </Picker>
+        </View>
+        <View style={styles.label}>
+          <Text>Window Transition Style:</Text>
+          <Picker
+            style={styles.picker}
+            selectedValue={this.state.windowTransitionStyle}
+            onValueChange={this.windowTransitionStyleSelected}>
+            <Picker.Item key="" label="(none)" value="" />
+            <Picker.Item key="slide" label="slide" value="slide" />
+            <Picker.Item key="slide_vertical" label="slide_vertical" value="slide_vertical" />
+            <Picker.Item key="fade" label="fade" value="fade" />
           </Picker>
         </View>
       </>
